@@ -1,5 +1,5 @@
 // PersonalShield: Rastreador de Segurança de Tokens Solana
-// Tecnologias: React + Vite + Solana Web3.js + Wallet Adapter
+// Tecnologias: React + Vite + Solana Web3.js
 
 import React, { useState, useEffect } from "react";
 import {
@@ -7,26 +7,13 @@ import {
   clusterApiUrl,
   PublicKey,
 } from "@solana/web3.js";
-import { WalletAdapterNetwork } from "@solana/wallet-adapter-base";
-import { WalletProvider, ConnectionProvider, useWallet } from "@solana/wallet-adapter-react";
-import { WalletModalProvider, WalletMultiButton } from "@solana/wallet-adapter-react-ui";
-import {
-  PhantomWalletAdapter,
-  BitKeepWalletAdapter,
-  SolflareWalletAdapter,
-  TorusWalletAdapter,
-  TrustWalletAdapter,
-  SolletWalletAdapter,
-} from "@solana/wallet-adapter-wallets";
 import { Metaplex } from "@metaplex-foundation/js";
 import { saveAs } from "file-saver";
 import TokenScanner from "./TokenScanner";
 
-require("@solana/wallet-adapter-react-ui/styles.css");
-
 const networks = {
-  devnet: clusterApiUrl(WalletAdapterNetwork.Devnet),
-  mainnet: clusterApiUrl(WalletAdapterNetwork.Mainnet),
+  devnet: clusterApiUrl("devnet"),
+  mainnet: clusterApiUrl("mainnet-beta"),
 };
 
 export default function App() {
@@ -36,15 +23,6 @@ export default function App() {
   const [holdersData, setHoldersData] = useState([]);
   const [warning, setWarning] = useState("");
   const [suspiciousHolders, setSuspiciousHolders] = useState([]);
-
-  const wallets = [
-    new PhantomWalletAdapter(),
-    new BitKeepWalletAdapter(),
-    new SolflareWalletAdapter(),
-    new TrustWalletAdapter(),
-    new SolletWalletAdapter({ network: WalletAdapterNetwork.Devnet }),
-    new TorusWalletAdapter(),
-  ];
 
   useEffect(() => {
     const calcularRiscoComBaseNosHolders = async () => {
@@ -110,56 +88,50 @@ export default function App() {
   };
 
   return (
-    <ConnectionProvider endpoint={networks[selectedNetwork]}>
-      <WalletProvider wallets={wallets} autoConnect>
-        <WalletModalProvider>
-          <div className="p-4">
-            <h1 className="text-2xl font-bold mb-4">PersonalShield - Verificador de Segurança de Tokens Solana</h1>
-            <label className="block mb-2 font-semibold">Rede Solana:</label>
-            <select
-              className="mb-4 p-2 border rounded"
-              value={selectedNetwork}
-              onChange={(e) => setSelectedNetwork(e.target.value)}
-            >
-              <option value="devnet">Devnet (teste)</option>
-              <option value="mainnet">Mainnet (real)</option>
-            </select>
-            {selectedNetwork === "mainnet" && (
-              <div className="mb-4 p-2 bg-yellow-100 text-yellow-800 border border-yellow-400 rounded">
-                <p><strong>Aviso:</strong> Você está usando a <strong>Mainnet</strong>. Será necessário ter saldo real de SOL para cobrir taxas de transação.</p>
-              </div>
-            )}
-            <TokenScanner
-              networkName={selectedNetwork}
-              setHoldersData={setHoldersData}
-            />
-            <div className="mt-6 p-4 border border-gray-300 rounded">
-              <h2 className="text-xl font-semibold mb-2">🔎 Medidor de Risco de Rugpull</h2>
-              <p className="mb-2 text-sm text-gray-700">
-                O risco é calculado com base na concentração de tokens, número de holders legítimos, interações com o endereço de mint e distribuição suspeita.
-              </p>
-              <div className="w-full bg-gray-200 rounded-full h-4">
-                <div
-                  className={`h-4 rounded-full ${riskScore > 70 ? "bg-red-500" : riskScore > 40 ? "bg-yellow-500" : "bg-green-500"}`}
-                  style={{ width: `${riskScore}%` }}
-                ></div>
-              </div>
-              <p className="text-sm mt-1 font-semibold text-gray-700">{riskLabel}</p>
-              {warning && (
-                <div className="mt-3 p-2 bg-red-100 text-red-800 border border-red-400 rounded">
-                  {warning}
-                </div>
-              )}
-              <button
-                onClick={exportarRelatorio}
-                className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-              >
-                Exportar Relatório
-              </button>
-            </div>
+    <div className="p-4">
+      <h1 className="text-2xl font-bold mb-4">PersonalShield - Verificador de Segurança de Tokens Solana</h1>
+      <label className="block mb-2 font-semibold">Rede Solana:</label>
+      <select
+        className="mb-4 p-2 border rounded"
+        value={selectedNetwork}
+        onChange={(e) => setSelectedNetwork(e.target.value)}
+      >
+        <option value="devnet">Devnet (teste)</option>
+        <option value="mainnet">Mainnet (real)</option>
+      </select>
+      {selectedNetwork === "mainnet" && (
+        <div className="mb-4 p-2 bg-yellow-100 text-yellow-800 border border-yellow-400 rounded">
+          <p><strong>Aviso:</strong> Você está usando a <strong>Mainnet</strong>. Será necessário ter saldo real de SOL para cobrir taxas de transação.</p>
+        </div>
+      )}
+      <TokenScanner
+        networkName={selectedNetwork}
+        setHoldersData={setHoldersData}
+      />
+      <div className="mt-6 p-4 border border-gray-300 rounded">
+        <h2 className="text-xl font-semibold mb-2">🔎 Medidor de Risco de Rugpull</h2>
+        <p className="mb-2 text-sm text-gray-700">
+          O risco é calculado com base na concentração de tokens, número de holders legítimos, interações com o endereço de mint e distribuição suspeita.
+        </p>
+        <div className="w-full bg-gray-200 rounded-full h-4">
+          <div
+            className={`h-4 rounded-full ${riskScore > 70 ? "bg-red-500" : riskScore > 40 ? "bg-yellow-500" : "bg-green-500"}`}
+            style={{ width: `${riskScore}%` }}
+          ></div>
+        </div>
+        <p className="text-sm mt-1 font-semibold text-gray-700">{riskLabel}</p>
+        {warning && (
+          <div className="mt-3 p-2 bg-red-100 text-red-800 border border-red-400 rounded">
+            {warning}
           </div>
-        </WalletModalProvider>
-      </WalletProvider>
-    </ConnectionProvider>
+        )}
+        <button
+          onClick={exportarRelatorio}
+          className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+        >
+          Exportar Relatório
+        </button>
+      </div>
+    </div>
   );
 }
