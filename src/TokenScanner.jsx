@@ -16,11 +16,15 @@ export default function TokenScanner({ networkName, setHoldersData }) {
       setLoading(true);
       setLog("🔍 Iniciando análise do token...\n");
 
-      const connection = new Connection(
-        networkName === "mainnet"
-          ? https://public-api.solscan.io/chaininfo"
-          : https://public-api.solscan.io/chaininfo,
-        "confirmed"
+      const requestOptions = {
+  method: "get",
+}
+
+fetch("https://public-api.solscan.io/chaininfo", requestOptions)
+  .then(response => response.json())
+  .then(response => console.log(response))
+  .catch(err => console.error(err));
+    
       );
 
       const tokenMint = new PublicKey(tokenAddress);
