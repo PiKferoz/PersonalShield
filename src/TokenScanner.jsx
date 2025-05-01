@@ -5,6 +5,8 @@ function TokenScanner({ networkName, setHoldersData }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  const HELIUS_RPC_URL = "https://mainnet.helius-rpc.com/?api-key=22acf63d-f640-4b00-8987-e8fd122ec312";
+
   const fetchTokenAccounts = async (mintAddress) => {
     const url = `https://api.helius.xyz/v0/tokens/metadata?mint=${mintAddress}&api-key=22acf63d-f640-4b00-8987-e8fd122ec312`;
     const response = await fetch(url);
