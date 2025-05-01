@@ -7,7 +7,7 @@ function TokenScanner({ networkName, setHoldersData }) {
   const ws = useRef(null);
 
   const HELIUS_API_KEY = "22acf63d-f640-4b00-8987-e8fd122ec312";
-  const WS_URL = `wss://mainnet.helius-rpc.com/?api-key=${HELIUS_API_KEY}`;
+  const WS_URL = `wss://mainnet.helius-rpc.com/?api-key=22acf63d-f640-4b00-8987-e8fd122ec312`;
 
   useEffect(() => {
     return () => {
