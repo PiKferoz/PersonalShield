@@ -5,11 +5,10 @@ function TokenScanner({ networkName, setHoldersData }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const headers = {
-    accept: "application/json",
-    Authorization:
-      "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjcmVhdGVkQXQiOjE3NDYxMzM3MzEwMDIsImVtYWlsIjoiZGlvY2FycmF6em9uZUBnbWFpbC5jb20iLCJhY3Rpb24iOiJ0b2tlbi1hcGkiLCJhcGlWZXJzaW9uIjoidjIiLCJpYXQiOjE3NDYxMzM3MzF9.0GaWmwLlPOnQxFW4s87NKc8p5TubX7X8BzOciYmrQ1E"
-  };
+const headers = {
+  accept: "application/json",
+  token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjcmVhdGVkQXQiOjE3NDYxMzM3MzEwMDIsImVtYWlsIjoiZGlvY2FycmF6em9uZUBnbWFpbC5jb20iLCJhY3Rpb24iOiJ0b2tlbi1hcGkiLCJhcGlWZXJzaW9uIjoidjIiLCJpYXQiOjE3NDYxMzM3MzF9.0GaWmwLlPOnQxFW4s87NKc8p5TubX7X8BzOciYmrQ1E"
+};
 
   const fetchHolders = async (mintAddress) => {
     const url = `https://pro-api.solscan.io/v2/token/holders?tokenAddress=${mintAddress}&limit=10`;
