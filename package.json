@@ -1,5 +1,5 @@
-"type": "module",
 {
+  "type": "module",
   "name": "personal-shield",
   "version": "1.0.0",
   "description": "Token scanner for Solana using Solscan public APIs",
