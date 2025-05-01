@@ -1,37 +1,165 @@
-import React, { useState } from "react";
+// PersonalShield: Rastreador de Segurança de Tokens Solana
+// Tecnologias: React + Vite + Solana Web3.js + Wallet Adapter
+
+import React, { useState, useEffect } from "react";
+import {
+  Connection,
+  clusterApiUrl,
+  PublicKey,
+} from "@solana/web3.js";
+import { WalletAdapterNetwork } from "@solana/wallet-adapter-base";
+import { WalletProvider, ConnectionProvider, useWallet } from "@solana/wallet-adapter-react";
+import { WalletModalProvider, WalletMultiButton } from "@solana/wallet-adapter-react-ui";
+import {
+  PhantomWalletAdapter,
+  BitKeepWalletAdapter,
+  SolflareWalletAdapter,
+  TorusWalletAdapter,
+  TrustWalletAdapter,
+  SolletWalletAdapter,
+} from "@solana/wallet-adapter-wallets";
+import { Metaplex } from "@metaplex-foundation/js";
+import { saveAs } from "file-saver";
 import TokenScanner from "./TokenScanner";
 
-function App() {
+require("@solana/wallet-adapter-react-ui/styles.css");
+
+const networks = {
+  devnet: clusterApiUrl(WalletAdapterNetwork.Devnet),
+  mainnet: clusterApiUrl(WalletAdapterNetwork.Mainnet),
+};
+
+export default function App() {
+  const [selectedNetwork, setSelectedNetwork] = useState("devnet");
+  const [riskScore, setRiskScore] = useState(0);
+  const [riskLabel, setRiskLabel] = useState("Calculando...");
   const [holdersData, setHoldersData] = useState([]);
+  const [warning, setWarning] = useState("");
+  const [suspiciousHolders, setSuspiciousHolders] = useState([]);
+
+  const wallets = [
+    new PhantomWalletAdapter(),
+    new BitKeepWalletAdapter(),
+    new SolflareWalletAdapter(),
+    new TrustWalletAdapter(),
+    new SolletWalletAdapter({ network: WalletAdapterNetwork.Devnet }),
+    new TorusWalletAdapter(),
+  ];
+
+  useEffect(() => {
+    const calcularRiscoComBaseNosHolders = async () => {
+      try {
+        const holders = holdersData;
+        const totalHolders = holders.length;
+        let highConcentration = false;
+        let legitBuyers = 0;
+        let indirectTransfers = 0;
+        let suspicious = [];
+
+        holders.forEach((holder) => {
+          if (holder.percentage >= 5) highConcentration = true;
+          if (holder.receivedFromMint) {
+            indirectTransfers++;
+            suspicious.push(holder);
+          }
+          if (holder.acquiredLegit) legitBuyers++;
+        });
+
+        let score = 0;
+        if (highConcentration) score += 30;
+        if (indirectTransfers / totalHolders > 0.3) score += 25;
+        if (legitBuyers / totalHolders < 0.5) score += 30;
+
+        score = Math.min(score, 100);
+        setRiskScore(score);
+
+        if (score > 70) setRiskLabel("Alto Risco de Rugpull");
+        else if (score > 40) setRiskLabel("Risco Moderado");
+        else setRiskLabel("Baixo Risco");
+
+        if (suspicious.length > 0) {
+          const warningMessage = `⚠️ Atenção: Detectamos ${suspicious.length} holder(s) com alta concentração de tokens que não foram adquiridos de forma legítima. Isso pode indicar distribuição suspeita.`;
+          setWarning(warningMessage);
+        } else {
+          setWarning("");
+        }
+
+        setSuspiciousHolders(suspicious);
+      } catch (error) {
+        console.error("Erro ao calcular risco:", error);
+      }
+    };
+
+    calcularRiscoComBaseNosHolders();
+  }, [holdersData]);
+
+  const exportarRelatorio = () => {
+    let relatorio = `Relatório de Segurança do Token\n`;
+    relatorio += `Rede: ${selectedNetwork}\n`;
+    relatorio += `Score de Risco: ${riskScore}/100\n`;
+    relatorio += `Nível de Risco: ${riskLabel}\n`;
+    if (warning) relatorio += `Alerta: ${warning}\n`;
+    if (suspiciousHolders.length > 0) {
+      relatorio += `\n--- Holders Suspeitos ---\n`;
+      suspiciousHolders.forEach((holder, i) => {
+        relatorio += `#${i + 1} Endereço: ${holder.address} | ${holder.percentage}% do supply | Recebido sem compra: ${holder.receivedFromMint ? "Sim" : "Não"}\n`;
+      });
+    }
+    const blob = new Blob([relatorio], { type: "text/plain;charset=utf-8" });
+    saveAs(blob, `relatorio_personalshield_${Date.now()}.txt`);
+  };
 
   return (
-    <div className="p-4">
-      <h1 className="text-2xl font-bold mb-4">Analisador de Token</h1>
-      <TokenScanner setHoldersData={setHoldersData} />
-
-      {holdersData.length > 0 && (
-        <div className="mt-6">
-          <h2 className="text-xl font-semibold mb-2">Holders:</h2>
-          <table className="w-full table-auto border border-gray-300">
-            <thead>
-              <tr className="bg-gray-200">
-                <th className="border px-2 py-1">Endereço</th>
-                <th className="border px-2 py-1">Percentual</th>
-              </tr>
-            </thead>
-            <tbody>
-              {holdersData.map((holder, idx) => (
-                <tr key={idx} className="border-t">
-                  <td className="border px-2 py-1">{holder.address}</td>
-                  <td className="border px-2 py-1">{holder.percentage}%</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </div>
+    <ConnectionProvider endpoint={networks[selectedNetwork]}>
+      <WalletProvider wallets={wallets} autoConnect>
+        <WalletModalProvider>
+          <div className="p-4">
+            <h1 className="text-2xl font-bold mb-4">PersonalShield - Verificador de Segurança de Tokens Solana</h1>
+            <label className="block mb-2 font-semibold">Rede Solana:</label>
+            <select
+              className="mb-4 p-2 border rounded"
+              value={selectedNetwork}
+              onChange={(e) => setSelectedNetwork(e.target.value)}
+            >
+              <option value="devnet">Devnet (teste)</option>
+              <option value="mainnet">Mainnet (real)</option>
+            </select>
+            {selectedNetwork === "mainnet" && (
+              <div className="mb-4 p-2 bg-yellow-100 text-yellow-800 border border-yellow-400 rounded">
+                <p><strong>Aviso:</strong> Você está usando a <strong>Mainnet</strong>. Será necessário ter saldo real de SOL para cobrir taxas de transação.</p>
+              </div>
+            )}
+            <TokenScanner
+              networkName={selectedNetwork}
+              setHoldersData={setHoldersData}
+            />
+            <div className="mt-6 p-4 border border-gray-300 rounded">
+              <h2 className="text-xl font-semibold mb-2">🔎 Medidor de Risco de Rugpull</h2>
+              <p className="mb-2 text-sm text-gray-700">
+                O risco é calculado com base na concentração de tokens, número de holders legítimos, interações com o endereço de mint e distribuição suspeita.
+              </p>
+              <div className="w-full bg-gray-200 rounded-full h-4">
+                <div
+                  className={`h-4 rounded-full ${riskScore > 70 ? "bg-red-500" : riskScore > 40 ? "bg-yellow-500" : "bg-green-500"}`}
+                  style={{ width: `${riskScore}%` }}
+                ></div>
+              </div>
+              <p className="text-sm mt-1 font-semibold text-gray-700">{riskLabel}</p>
+              {warning && (
+                <div className="mt-3 p-2 bg-red-100 text-red-800 border border-red-400 rounded">
+                  {warning}
+                </div>
+              )}
+              <button
+                onClick={exportarRelatorio}
+                className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+              >
+                Exportar Relatório
+              </button>
+            </div>
+          </div>
+        </WalletModalProvider>
+      </WalletProvider>
+    </ConnectionProvider>
   );
 }
-
-export default App;
