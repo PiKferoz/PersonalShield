@@ -1,7 +1,7 @@
 {
-  "type": "module",
-  "name": "personalshield",
+  "name": "personal-shield",
   "version": "1.0.0",
+  "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
