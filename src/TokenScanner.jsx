@@ -6,7 +6,7 @@ function TokenScanner({ networkName, setHoldersData }) {
   const [error, setError] = useState(null);
 
   const fetchTokenAccounts = async (mintAddress) => {
-    const url = `https://api.helius.xyz/v0/tokens/metadata?mint=${mintAddress}&api-key=default-public`;
+    const url = `https://api.helius.xyz/v0/tokens/metadata?mint=${mintAddress}&api-key=22acf63d-f640-4b00-8987-e8fd122ec312`;
     const response = await fetch(url);
     if (!response.ok) throw new Error("Erro ao buscar metadados do token");
     const result = await response.json();
@@ -14,7 +14,7 @@ function TokenScanner({ networkName, setHoldersData }) {
   };
 
   const fetchTransfers = async (mintAddress) => {
-    const url = `https://api.helius.xyz/v0/addresses/${mintAddress}/transactions?limit=10&api-key=default-public`;
+    const url = `https://api.helius.xyz/v0/addresses/${mintAddress}/transactions?limit=10&api-key=22acf63d-f640-4b00-8987-e8fd122ec312`;
     const response = await fetch(url);
     if (!response.ok) throw new Error("Erro ao buscar transações");
     const result = await response.json();
