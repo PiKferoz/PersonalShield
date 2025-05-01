@@ -8,7 +8,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@metaplex-foundation/js": "^1.33.0",
+    "@metaplex-foundation/js": "^1.27.1",
     "@solana/wallet-adapter-base": "^0.9.20",
     "@solana/wallet-adapter-react": "^0.15.25",
     "@solana/wallet-adapter-react-ui": "^0.9.25",
