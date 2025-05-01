@@ -1,20 +1,9 @@
 // PersonalShield: Rastreador de Segurança de Tokens Solana
-// Tecnologias: React + Vite + Solana Web3.js
+// Tecnologias: React + Vite
 
 import React, { useState, useEffect } from "react";
-import {
-  Connection,
-  clusterApiUrl,
-  PublicKey,
-} from "@solana/web3.js";
-import { Metaplex } from "@metaplex-foundation/js";
 import { saveAs } from "file-saver";
 import TokenScanner from "./TokenScanner";
-
-const networks = {
-  devnet: clusterApiUrl("devnet"),
-  mainnet: clusterApiUrl("mainnet-beta"),
-};
 
 export default function App() {
   const [selectedNetwork, setSelectedNetwork] = useState("devnet");
