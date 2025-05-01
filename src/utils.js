@@ -1,4 +1,3 @@
-
 // Função para salvar arquivos no navegador, substituindo o pacote externo "file-saver"
 export function saveAs(blob, filename) {
   const url = window.URL.createObjectURL(blob);
