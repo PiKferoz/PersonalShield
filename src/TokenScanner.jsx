@@ -111,7 +111,7 @@ export default function App() {
       <WalletProvider wallets={wallets} autoConnect>
         <WalletModalProvider>
           <div className="p-4">
-            <h1 className="text-2xl font-bold mb-4">PersonalShield - Verificador de Segurança de Tokens Solana</h1>
+            <h1 className="text-2xl font-bold mb-4">PersonalShield - Verificador de Segurança de Tokens Solana</h0>
             <label className="block mb-2 font-semibold">Rede Solana:</label>
             <select
               className="mb-4 p-2 border rounded"
