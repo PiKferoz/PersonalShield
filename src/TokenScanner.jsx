@@ -7,10 +7,12 @@ function TokenScanner({ networkName, setHoldersData }) {
 
   const headers = {
     accept: "application/json",
+    Authorization:
+      "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjcmVhdGVkQXQiOjE3NDYxMzM3MzEwMDIsImVtYWlsIjoiZGlvY2FycmF6em9uZUBnbWFpbC5jb20iLCJhY3Rpb24iOiJ0b2tlbi1hcGkiLCJhcGlWZXJzaW9uIjoidjIiLCJpYXQiOjE3NDYxMzM3MzF9.0GaWmwLlPOnQxFW4s87NKc8p5TubX7X8BzOciYmrQ1E"
   };
 
   const fetchHolders = async (mintAddress) => {
-    const url = `https://public-api.solscan.io/token/holders?tokenAddress=${mintAddress}&limit=10`;
+    const url = `https://pro-api.solscan.io/v2.0/token/holders?tokenAddress=${mintAddress}&limit=10`;
     const response = await fetch(url, { headers });
     if (!response.ok) throw new Error("Erro ao buscar holders");
     const result = await response.json();
@@ -18,7 +20,7 @@ function TokenScanner({ networkName, setHoldersData }) {
   };
 
   const fetchTransfers = async (mintAddress) => {
-    const url = `https://public-api.solscan.io/token/transfer?tokenAddress=${mintAddress}`;
+    const url = `https://pro-api.solscan.io/v2.0/token/transfer?tokenAddress=${mintAddress}`;
     const response = await fetch(url, { headers });
     if (!response.ok) throw new Error("Erro ao buscar transferências");
     const result = await response.json();
@@ -26,7 +28,7 @@ function TokenScanner({ networkName, setHoldersData }) {
   };
 
   const fetchDeFiTransfers = async (mintAddress) => {
-    const url = `https://public-api.solscan.io/token/defi/activities?tokenAddress=${mintAddress}`;
+    const url = `https://pro-api.solscan.io/v2.0/token/defi/activities?tokenAddress=${mintAddress}`;
     const response = await fetch(url, { headers });
     if (!response.ok) throw new Error("Erro ao buscar DeFi transfers");
     const result = await response.json();
@@ -34,7 +36,7 @@ function TokenScanner({ networkName, setHoldersData }) {
   };
 
   const fetchRecentTransactions = async (mintAddress) => {
-    const url = `https://public-api.solscan.io/transaction/last?address=${mintAddress}`;
+    const url = `https://pro-api.solscan.io/v2.0/transaction/last?address=${mintAddress}`;
     const response = await fetch(url, { headers });
     if (!response.ok) throw new Error("Erro ao buscar últimas transações");
     const result = await response.json();
