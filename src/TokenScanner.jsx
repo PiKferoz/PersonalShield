@@ -1,162 +1,139 @@
-import React, { useState, useEffect } from "react";
-import {
-  Connection,
-  clusterApiUrl,
-  PublicKey,
-} from "@solana/web3.js";
-import { WalletAdapterNetwork } from "@solana/wallet-adapter-base";
-import { WalletProvider, ConnectionProvider } from "@solana/wallet-adapter-react";
-import { WalletModalProvider, WalletMultiButton } from "@solana/wallet-adapter-react-ui";
-import {
-  PhantomWalletAdapter,
-  BitKeepWalletAdapter,
-  SolflareWalletAdapter,
-  TorusWalletAdapter,
-  TrustWalletAdapter,
-  SolletWalletAdapter,
-} from "@solana/wallet-adapter-wallets";
-import { Metaplex } from "@metaplex-foundation/js";
-import { saveAs } from "file-saver";
-import TokenScanner from "./TokenScanner";
+import React, { useState } from "react";
+import { Connection, PublicKey } from "@solana/web3.js";
+import axios from "axios";
 
-require("@solana/wallet-adapter-react-ui/styles.css");
+export default function TokenScanner({ networkName, setHoldersData }) {
+  const [tokenAddress, setTokenAddress] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [log, setLog] = useState("");
 
-const networks = {
-  devnet: clusterApiUrl(WalletAdapterNetwork.Devnet),
-  mainnet: clusterApiUrl(WalletAdapterNetwork.Mainnet),
-};
+  const logInfo = (msg) => {
+    setLog((prev) => prev + msg + "\n");
+  };
 
-export default function App() {
-  const [selectedNetwork, setSelectedNetwork] = useState("mainnet");
-  const [riskScore, setRiskScore] = useState(0);
-  const [riskLabel, setRiskLabel] = useState("Calculando...");
-  const [holdersData, setHoldersData] = useState([]);
-  const [warning, setWarning] = useState("");
-  const [suspiciousHolders, setSuspiciousHolders] = useState([]);
+  const handleScan = async () => {
+    try {
+      setLoading(true);
+      setLog("🔍 Iniciando análise do token...\n");
 
-  const wallets = [
-    new PhantomWalletAdapter(),
-    new BitKeepWalletAdapter(),
-    new SolflareWalletAdapter(),
-    new TrustWalletAdapter(),
-    new SolletWalletAdapter({ network: WalletAdapterNetwork.Mainnet }),
-    new TorusWalletAdapter(),
-  ];
+      const connection = new Connection(
+        networkName === "mainnet"
+          ? "https://api.mainnet-beta.solana.com"
+          : "https://api.devnet.solana.com",
+        "confirmed"
+      );
 
-  useEffect(() => {
-    const calcularRiscoComBaseNosHolders = async () => {
-      try {
-        const holders = holdersData;
-        const totalHolders = holders.length;
-        let highConcentration = false;
-        let legitBuyers = 0;
-        let indirectTransfers = 0;
-        let suspicious = [];
+      const tokenMint = new PublicKey(tokenAddress);
+      logInfo("🔗 Conectado à rede " + networkName.toUpperCase());
 
-        holders.forEach((holder) => {
-          if (holder.percentage >= 5) highConcentration = true;
-          if (holder.receivedFromMint) {
-            indirectTransfers++;
-            suspicious.push(holder);
+      const holdersResponse = await axios.get(
+        `https://public-api.solscan.io/token/holders?token=${tokenAddress}&limit=50`,
+        { headers: { accept: "application/json" } }
+      );
+
+      const holders = holdersResponse.data.data;
+
+      logInfo(`✅ ${holders.length} holders encontrados.`);
+
+      const totalSupply = holders.reduce(
+        (acc, h) => acc + h.tokenAmount.uiAmount,
+        0
+      );
+
+      const holdersComDados = [];
+
+      for (const holder of holders) {
+        const address = holder.owner;
+        const percentage =
+          (holder.tokenAmount.uiAmount / totalSupply) * 100;
+
+        logInfo(`🔎 Verificando holder ${address}...`);
+
+        const sigs = await connection.getSignaturesForAddress(
+          new PublicKey(address),
+          { limit: 100 }
+        );
+
+        const txs = await Promise.all(
+          sigs.map((sig) =>
+            connection.getTransaction(sig.signature, {
+              maxSupportedTransactionVersion: 0,
+            })
+          )
+        );
+
+        let acquiredLegit = false;
+        let receivedFromMint = false;
+
+        for (const tx of txs) {
+          if (!tx || !tx.transaction) continue;
+
+          const instructions = tx.transaction.message.instructions;
+
+          for (const ix of instructions) {
+            if (
+              ix.programId.toBase58() === "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA" &&
+              ix.data &&
+              ix.data.length >= 2
+            ) {
+              const type = Buffer.from(ix.data, "base64")[0];
+              if (type === 3 || type === 7) {
+                const source = ix.accounts[0];
+                const destination = ix.accounts[1];
+                if (
+                  tx.meta.postTokenBalances &&
+                  tx.meta.postTokenBalances.length > 0 &&
+                  tx.meta.postTokenBalances[0].mint === tokenMint.toBase58()
+                ) {
+                  if (source !== destination) {
+                    acquiredLegit = true;
+                  } else {
+                    receivedFromMint = true;
+                  }
+                }
+              }
+            }
           }
-          if (holder.acquiredLegit) legitBuyers++;
-        });
-
-        let score = 0;
-        if (highConcentration) score += 30;
-        if (indirectTransfers / totalHolders > 0.3) score += 25;
-        if (legitBuyers / totalHolders < 0.5) score += 30;
-
-        score = Math.min(score, 100);
-        setRiskScore(score);
-
-        if (score > 70) setRiskLabel("Alto Risco de Rugpull");
-        else if (score > 40) setRiskLabel("Risco Moderado");
-        else setRiskLabel("Baixo Risco");
-
-        if (suspicious.length > 0) {
-          const warningMessage = `⚠️ Atenção: Detectamos ${suspicious.length} holder(s) com alta concentração de tokens que não foram adquiridos de forma legítima. Isso pode indicar distribuição suspeita.`;
-          setWarning(warningMessage);
-        } else {
-          setWarning("");
         }
 
-        setSuspiciousHolders(suspicious);
-      } catch (error) {
-        console.error("Erro ao calcular risco:", error);
+        holdersComDados.push({
+          address,
+          percentage: percentage.toFixed(4),
+          acquiredLegit,
+          receivedFromMint,
+        });
       }
-    };
 
-    calcularRiscoComBaseNosHolders();
-  }, [holdersData]);
-
-  const exportarRelatorio = () => {
-    let relatorio = `Relatório de Segurança do Token\n`;
-    relatorio += `Rede: ${selectedNetwork}\n`;
-    relatorio += `Score de Risco: ${riskScore}/100\n`;
-    relatorio += `Nível de Risco: ${riskLabel}\n`;
-    if (warning) relatorio += `Alerta: ${warning}\n`;
-    if (suspiciousHolders.length > 0) {
-      relatorio += `\n--- Holders Suspeitos ---\n`;
-      suspiciousHolders.forEach((holder, i) => {
-        relatorio += `#${i + 1} Endereço: ${holder.address} | ${holder.percentage}% do supply | Recebido sem compra: ${holder.receivedFromMint ? "Sim" : "Não"}\n`;
-      });
+      setHoldersData(holdersComDados);
+      logInfo("\n✅ Análise finalizada.");
+    } catch (err) {
+      console.error(err);
+      logInfo("❌ Erro ao analisar o token. Verifique o endereço ou tente novamente.");
+    } finally {
+      setLoading(false);
     }
-    const blob = new Blob([relatorio], { type: "text/plain;charset=utf-8" });
-    saveAs(blob, `relatorio_personalshield_${Date.now()}.txt`);
   };
 
   return (
-    <ConnectionProvider endpoint={networks[selectedNetwork]}>
-      <WalletProvider wallets={wallets} autoConnect>
-        <WalletModalProvider>
-          <div className="p-4">
-            <h1 className="text-2xl font-bold mb-4">PersonalShield - Verificador de Segurança de Tokens Solana</h1>
-            <label className="block mb-2 font-semibold">Rede Solana:</label>
-            <select
-              className="mb-4 p-2 border rounded"
-              value={selectedNetwork}
-              onChange={(e) => setSelectedNetwork(e.target.value)}
-            >
-              <option value="devnet">Devnet (teste)</option>
-              <option value="mainnet">Mainnet (real)</option>
-            </select>
-            {selectedNetwork === "mainnet" && (
-              <div className="mb-4 p-2 bg-yellow-100 text-yellow-800 border border-yellow-400 rounded">
-                <p><strong>Aviso:</strong> Você está usando a <strong>Mainnet</strong>. Será necessário ter saldo real de SOL para cobrir taxas de transação.</p>
-              </div>
-            )}
-            <TokenScanner
-              networkName={selectedNetwork}
-              setHoldersData={setHoldersData}
-            />
-            <div className="mt-6 p-4 border border-gray-300 rounded">
-              <h2 className="text-xl font-semibold mb-2">🔎 Medidor de Risco de Rugpull</h2>
-              <p className="mb-2 text-sm text-gray-700">
-                O risco é calculado com base na concentração de tokens, número de holders legítimos, interações com o endereço de mint e distribuição suspeita.
-              </p>
-              <div className="w-full bg-gray-200 rounded-full h-4">
-                <div
-                  className={`h-4 rounded-full ${riskScore > 70 ? "bg-red-500" : riskScore > 40 ? "bg-yellow-500" : "bg-green-500"}`}
-                  style={{ width: `${riskScore}%` }}
-                ></div>
-              </div>
-              <p className="text-sm mt-1 font-semibold text-gray-700">{riskLabel}</p>
-              {warning && (
-                <div className="mt-3 p-2 bg-red-100 text-red-800 border border-red-400 rounded">
-                  {warning}
-                </div>
-              )}
-              <button
-                onClick={exportarRelatorio}
-                className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-              >
-                Exportar Relatório
-              </button>
-            </div>
-          </div>
-        </WalletModalProvider>
-      </WalletProvider>
-    </ConnectionProvider>
+    <div className="border p-4 rounded mb-4 bg-white">
+      <label className="block font-semibold mb-2">
+        Endereço do Token (Mint):
+      </label>
+      <input
+        type="text"
+        placeholder="Ex: 4gpjMaXNMxEq9HCRaSaXttK1T4rTGNj8kSp68FLuh5uV"
+        className="p-2 border rounded w-full mb-2"
+        value={tokenAddress}
+        onChange={(e) => setTokenAddress(e.target.value)}
+      />
+      <button
+        onClick={handleScan}
+        className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+        disabled={loading}
+      >
+        {loading ? "Analisando..." : "Iniciar Análise"}
+      </button>
+      <pre className="bg-gray-100 text-sm p-2 mt-3 rounded overflow-auto h-48">{log}</pre>
+    </div>
   );
 }
