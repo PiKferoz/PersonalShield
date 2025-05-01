@@ -7,8 +7,7 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: "Parâmetros 'endpoint' e 'query' são obrigatórios" });
   }
 
-  const url = `https://public-api.solscan.io/${endpoint}?${query}`;
-
+  const url = `/api/solscan?endpoint=token/holders&query=token=${mintAddress}&limit=100`;
   try {
     const response = await fetch(url, {
       headers: {
