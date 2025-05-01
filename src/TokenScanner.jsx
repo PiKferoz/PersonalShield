@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Connection, PublicKey } from "@solana/web3.js";
+import { Connection, PublicKey } from "https://public-api.solscan.io/chaininfo";
 import axios from "axios";
 
 export default function TokenScanner({ networkName, setHoldersData }) {
