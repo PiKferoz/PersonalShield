@@ -1,0 +1,1 @@
+// (conteúdo do App.jsx será inserido abaixo pelo assistente na próxima célula)
