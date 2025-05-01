@@ -5,32 +5,22 @@ function App() {
   const [holdersData, setHoldersData] = useState([]);
 
   return (
-    <div className="p-6 max-w-3xl mx-auto">
-      <h1 className="text-3xl font-bold mb-6">🔍 PersonalShield Token Scanner</h1>
+    <div className="p-4">
+      <h1 className="text-2xl font-bold mb-4">Personal Shield</h1>
       <TokenScanner networkName="mainnet" setHoldersData={setHoldersData} />
       {holdersData.length > 0 && (
-        <div className="mt-8">
-          <h2 className="text-xl font-semibold mb-4">Resultado da análise:</h2>
-          <table className="w-full text-left border">
-            <thead>
-              <tr>
-                <th className="border px-2 py-1">Endereço</th>
-                <th className="border px-2 py-1">% do Supply</th>
-                <th className="border px-2 py-1">Recebeu do Criador?</th>
-                <th className="border px-2 py-1">Compra Legítima?</th>
-              </tr>
-            </thead>
-            <tbody>
-              {holdersData.map((holder) => (
-                <tr key={holder.address}>
-                  <td className="border px-2 py-1">{holder.address}</td>
-                  <td className="border px-2 py-1">{holder.percentage}%</td>
-                  <td className="border px-2 py-1">{holder.receivedFromMint ? "Sim" : "Não"}</td>
-                  <td className="border px-2 py-1">{holder.acquiredLegit ? "Sim" : "Não"}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="mt-6">
+          <h2 className="text-xl font-semibold mb-2">Holders Analisados</h2>
+          <ul className="space-y-2">
+            {holdersData.map((h, idx) => (
+              <li key={idx} className="border p-2 rounded">
+                <p><strong>Endereço:</strong> {h.address}</p>
+                <p><strong>Participação:</strong> {h.percentage}%</p>
+                <p><strong>Recebeu da Mint:</strong> {h.receivedFromMint ? "Sim" : "Não"}</p>
+                <p><strong>Aquisição Legítima:</strong> {h.acquiredLegit ? "Sim" : "Não"}</p>
+              </li>
+            ))}
+          </ul>
         </div>
       )}
     </div>
