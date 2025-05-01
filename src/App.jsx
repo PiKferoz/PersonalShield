@@ -2,7 +2,7 @@
 // Tecnologias: React + Vite
 
 import React, { useState, useEffect } from "react";
-import { saveAs } from "file-saver";
+import { saveAs } from "./utils/file-saver.js";
 import TokenScanner from "./TokenScanner";
 
 export default function App() {
