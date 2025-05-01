@@ -6,21 +6,28 @@ function App() {
 
   return (
     <div className="p-4">
-      <h1 className="text-2xl font-bold mb-4">Personal Shield</h1>
-      <TokenScanner networkName="mainnet" setHoldersData={setHoldersData} />
+      <h1 className="text-2xl font-bold mb-4">Analisador de Token</h1>
+      <TokenScanner setHoldersData={setHoldersData} />
+
       {holdersData.length > 0 && (
         <div className="mt-6">
-          <h2 className="text-xl font-semibold mb-2">Holders Analisados</h2>
-          <ul className="space-y-2">
-            {holdersData.map((h, idx) => (
-              <li key={idx} className="border p-2 rounded">
-                <p><strong>Endereço:</strong> {h.address}</p>
-                <p><strong>Participação:</strong> {h.percentage}%</p>
-                <p><strong>Recebeu da Mint:</strong> {h.receivedFromMint ? "Sim" : "Não"}</p>
-                <p><strong>Aquisição Legítima:</strong> {h.acquiredLegit ? "Sim" : "Não"}</p>
-              </li>
-            ))}
-          </ul>
+          <h2 className="text-xl font-semibold mb-2">Holders:</h2>
+          <table className="w-full table-auto border border-gray-300">
+            <thead>
+              <tr className="bg-gray-200">
+                <th className="border px-2 py-1">Endereço</th>
+                <th className="border px-2 py-1">Percentual</th>
+              </tr>
+            </thead>
+            <tbody>
+              {holdersData.map((holder, idx) => (
+                <tr key={idx} className="border-t">
+                  <td className="border px-2 py-1">{holder.address}</td>
+                  <td className="border px-2 py-1">{holder.percentage}%</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
     </div>
