@@ -1,143 +1,106 @@
 import React, { useState } from "react";
-import { Connection, PublicKey } from "https://public-api.solscan.io/chaininfo";
-import axios from "axios";
 
-export default function TokenScanner({ networkName, setHoldersData }) {
-  const [tokenAddress, setTokenAddress] = useState("");
+function TokenScanner({ networkName, setHoldersData }) {
+  const [tokenMint, setTokenMint] = useState("");
   const [loading, setLoading] = useState(false);
-  const [log, setLog] = useState("");
+  const [error, setError] = useState(null);
 
-  const logInfo = (msg) => {
-    setLog((prev) => prev + msg + "\n");
+  const headers = {
+    accept: "application/json",
   };
 
-  const handleScan = async () => {
+  const fetchHolders = async (mintAddress) => {
+    const url = `https://public-api.solscan.io/token/holders?tokenAddress=${mintAddress}&limit=10`;
+    const response = await fetch(url, { headers });
+    if (!response.ok) throw new Error("Erro ao buscar holders");
+    const result = await response.json();
+    return result.data || [];
+  };
+
+  const fetchTransfers = async (mintAddress) => {
+    const url = `https://public-api.solscan.io/token/transfer?tokenAddress=${mintAddress}`;
+    const response = await fetch(url, { headers });
+    if (!response.ok) throw new Error("Erro ao buscar transferências");
+    const result = await response.json();
+    return result.data || [];
+  };
+
+  const fetchDeFiTransfers = async (mintAddress) => {
+    const url = `https://public-api.solscan.io/token/defi/activities?tokenAddress=${mintAddress}`;
+    const response = await fetch(url, { headers });
+    if (!response.ok) throw new Error("Erro ao buscar DeFi transfers");
+    const result = await response.json();
+    return result.data || [];
+  };
+
+  const fetchRecentTransactions = async (mintAddress) => {
+    const url = `https://public-api.solscan.io/transaction/last?address=${mintAddress}`;
+    const response = await fetch(url, { headers });
+    if (!response.ok) throw new Error("Erro ao buscar últimas transações");
+    const result = await response.json();
+    return result.data || [];
+  };
+
+  const analyzeToken = async () => {
+    setLoading(true);
+    setError(null);
+
     try {
-      setLoading(true);
-      setLog("🔍 Iniciando análise do token...\n");
+      const holders = await fetchHolders(tokenMint);
+      const transfers = await fetchTransfers(tokenMint);
+      const defiTransfers = await fetchDeFiTransfers(tokenMint);
+      const recentTx = await fetchRecentTransactions(tokenMint);
 
-      const requestOptions = {
-  method: "get",
-}
+      const totalSupply = holders.reduce((acc, h) => acc + h.amount, 0);
 
-fetch("https://public-api.solscan.io/chaininfo", requestOptions)
-  .then(response => response.json())
-  .then(response => console.log(response))
-  .catch(err => console.error(err));
-    
-      );
-
-      const tokenMint = new PublicKey(tokenAddress);
-      logInfo("🔗 Conectado à rede " + networkName.toUpperCase());
-
-      const holdersResponse = await axios.get(
-        `https://public-api.solscan.io/token/holders?token=${tokenAddress}&limit=50`,
-        { headers: { accept: "application/json" } }
-      );
-
-      const holders = holdersResponse.data.data;
-
-      logInfo(`✅ ${holders.length} holders encontrados.`);
-
-      const totalSupply = holders.reduce(
-        (acc, h) => acc + h.tokenAmount.uiAmount,
-        0
-      );
-
-      const holdersComDados = [];
-
-      for (const holder of holders) {
-        const address = holder.owner;
-        const percentage =
-          (holder.tokenAmount.uiAmount/totalSupply) * 100;
-
-        logInfo(`🔎 Verificando holder ${address}...`);
-
-        const sigs = await connection.getSignaturesForAddress(
-          new PublicKey(address),
-          { limit: 100 }
+      const processedHolders = holders.map((holder) => {
+        const receivedFromMint = transfers.some(
+          (tx) => tx.dst === holder.owner && tx.src === tokenMint
         );
 
-        const txs = await Promise.all(
-          sigs.map((sig) =>
-            connection.getTransaction(sig.signature, {
-              maxSupportedTransactionVersion: 0,
-            })
-          )
+        const acquiredLegit = !defiTransfers.some(
+          (tx) => tx.dst === holder.owner && tx.type === "unknown"
         );
 
-        let acquiredLegit = false;
-        let receivedFromMint = false;
-
-        for (const tx of txs) {
-          if (!tx || !tx.transaction) continue;
-
-          const instructions = tx.transaction.message.instructions;
-
-          for (const ix of instructions) {
-            if (
-              ix.programId.toBase58() === "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA" &&
-              ix.data &&
-              ix.data.length >= 2
-            ) {
-              const type = Buffer.from(ix.data, "base64")[0];
-              if (type === 3 || type === 7) {
-                const source = ix.accounts[0];
-                const destination = ix.accounts[1];
-                if (
-                  tx.meta.postTokenBalances &&
-                  tx.meta.postTokenBalances.length > 0 &&
-                  tx.meta.postTokenBalances[0].mint === tokenMint.toBase58()
-                ) {
-                  if (source !== destination) {
-                    acquiredLegit = true;
-                  } else {
-                    receivedFromMint = true;
-                  }
-                }
-              }
-            }
-          }
-        }
-
-        holdersComDados.push({
-          address,
-          percentage: percentage.toFixed(4),
-          acquiredLegit,
+        return {
+          address: holder.owner,
+          percentage: ((holder.amount / totalSupply) * 100).toFixed(2),
           receivedFromMint,
-        });
-      }
+          acquiredLegit,
+        };
+      });
 
-      setHoldersData(holdersComDados);
-      logInfo("\n✅ Análise finalizada.");
+      setHoldersData(processedHolders);
     } catch (err) {
-      console.error(err);
-      logInfo("❌ Erro ao analisar o token. Verifique o endereço ou tente novamente.");
+      console.error("Erro ao verificar holders:", err);
+      setError("Falha na análise do token.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="border p-4 rounded mb-4 bg-white">
-      <label className="block font-semibold mb-2">
-        Endereço do Token (Mint):
+    <div>
+      <label className="block mb-2">
+        Endereço do Token Mint:
+        <input
+          type="text"
+          value={tokenMint}
+          onChange={(e) => setTokenMint(e.target.value)}
+          placeholder="Ex: 4gpjMaXNMxEq9HCRa..."
+          className="border px-2 py-1 w-full"
+        />
       </label>
-      <input
-        type="text"
-        placeholder="Ex: 4gpjMaXNMxEq9HCRaSaXttK1T4rTGNj8kSp68FLuh5uV"
-        className="p-2 border rounded w-full mb-2"
-        value={tokenAddress}
-        onChange={(e) => setTokenAddress(e.target.value)}
-      />
       <button
-        onClick={handleScan}
-        className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+        onClick={analyzeToken}
+        className="bg-blue-600 text-white px-4 py-2 rounded"
         disabled={loading}
       >
         {loading ? "Analisando..." : "Iniciar Análise"}
       </button>
-      <pre className="bg-gray-100 text-sm p-2 mt-3 rounded overflow-auto h-48">{log}</pre>
+      {error && <p className="text-red-600 mt-2">{error}</p>}
     </div>
   );
 }
+
+export default TokenScanner;
