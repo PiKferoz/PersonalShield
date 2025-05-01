@@ -49,7 +49,7 @@ fetch("https://public-api.solscan.io/chaininfo", requestOptions)
       for (const holder of holders) {
         const address = holder.owner;
         const percentage =
-          (holder.tokenAmount.uiAmount / totalSupply) * 100;
+          (holder.tokenAmount.uiAmount/totalSupply) * 100;
 
         logInfo(`🔎 Verificando holder ${address}...`);
 
