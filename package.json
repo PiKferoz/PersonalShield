@@ -1,24 +1,18 @@
 {
-  "name": "personalshield",
+  "name": "personal-shield",
   "version": "1.0.0",
-  "description": "Token Scanner para Solana - PersonalShield",
+  "description": "Token scanner for Solana using Solscan public APIs",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview"
   },
   "dependencies": {
-    "@solana/wallet-adapter-base": "^0.9.20",
-    "@solana/wallet-adapter-react": "^0.15.25",
-    "@solana/wallet-adapter-react-ui": "^0.9.25",
-    "@solana/wallet-adapter-wallets": "^0.20.13",
-    "@solana/web3.js": "^1.88.2",
-    "file-saver": "^2.0.5",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.0.0",
-    "vite": "^4.5.0"
+    "vite": "^5.0.0"
   }
 }
