@@ -18,8 +18,8 @@ export default function TokenScanner({ networkName, setHoldersData }) {
 
       const connection = new Connection(
         networkName === "mainnet"
-          ? "https://api.mainnet-beta.solana.com"
-          : "https://api.devnet.solana.com",
+          ? https://public-api.solscan.io/chaininfo"
+          : https://public-api.solscan.io/chaininfo,
         "confirmed"
       );
 
